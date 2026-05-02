@@ -2,7 +2,7 @@ name: Deploy helmio-web
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:
@@ -17,8 +17,8 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/helmio-web
-            git pull origin main
-            npm ci
+            git pull origin master
+            npm install
             npm run build
             sudo systemctl restart helmio-web
             echo "helmio-web deployed ✓"
