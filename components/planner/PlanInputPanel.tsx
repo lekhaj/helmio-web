@@ -105,7 +105,7 @@ export function PlanInputPanel({
           {generating ? 'Generating plan…' : 'Generate Plan'}
         </Button>
         <p className="text-[10px] text-neutral-400 text-center mt-2 font-mono">
-          stub mode · bedrock sonnet 4.5 in phase 2
+          bedrock · claude sonnet 4.6 · flex tier
         </p>
       </div>
     </div>
