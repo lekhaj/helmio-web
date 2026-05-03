@@ -1,28 +1,22 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
+import Sidebar from '@/components/layout/Sidebar'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Helmio',
-  description: 'Task tracker and feedback looper',
+  title: 'Helmio — Sprint Planner',
+  description: 'Plan weekly sprints. Tie tasks to KPIs.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900">
-        <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-6">
-          <Link href="/" className="font-bold text-lg text-brand-600 tracking-tight">
-            Helmio
-          </Link>
-          <Link href="/tasks" className="text-sm font-medium text-gray-600 hover:text-brand-600 transition-colors">
-            Tasks
-          </Link>
-          <Link href="/feedback" className="text-sm font-medium text-gray-600 hover:text-brand-600 transition-colors">
-            Feedback
-          </Link>
-        </nav>
-        <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className="font-sans antialiased text-neutral-900 bg-neutral-50 min-h-screen">
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
+        </div>
       </body>
     </html>
   )
