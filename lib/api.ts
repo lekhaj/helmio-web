@@ -1,6 +1,7 @@
 import type {
   Task, TaskCreate, Feedback, FeedbackCreate,
   Project, ProjectCreate, Developer, WeeklyPlan, WeeklyPlanGenerate, PlanTask,
+  ClarifyRequest, ClarifyResponse,
 } from '@/types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
@@ -53,7 +54,7 @@ export const api = {
   },
   plans: {
     get: (id: number) => req<WeeklyPlan>(`/weekly-plans/${id}`),
-    update: (id: number, body: Partial<{ goal: string; context: string; prompt: string }>) =>
+    update: (id: number, body: Partial<{ goal: string; context: string; prompt: string; time_available_hours: number; blockers: string[]; focus_areas: string[] }>) =>
       req<WeeklyPlan>(`/weekly-plans/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     generate: (id: number, body: WeeklyPlanGenerate) =>
       req<WeeklyPlan>(`/weekly-plans/${id}/generate`, { method: 'POST', body: JSON.stringify(body) }),
@@ -63,4 +64,6 @@ export const api = {
       req<PlanTask>(`/plan-tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     delete: (id: number) => req<void>(`/plan-tasks/${id}`, { method: 'DELETE' }),
   },
+  clarify: (body: ClarifyRequest) =>
+    req<ClarifyResponse>('/clarify', { method: 'POST', body: JSON.stringify(body) }),
 }

@@ -33,6 +33,7 @@ export interface FeedbackCreate {
 // --- sprint planner ---
 export type Priority = 'low' | 'medium' | 'high'
 export type ProjectStatus = 'active' | 'archived'
+export type ProjectStage = 'idea' | 'mvp' | 'early_users' | 'growth' | 'scaling'
 export type PlanStatus = 'draft' | 'active' | 'completed'
 export type PlanTaskStatus = 'todo' | 'in_progress' | 'done'
 
@@ -49,6 +50,12 @@ export interface Project {
   id: number
   name: string
   description: string
+  vision: string
+  target_user: string
+  stage: ProjectStage
+  constraints: string[]
+  what_exists: string[]
+  problems: string[]
   kpi_primary: string | null
   kpi_secondary: string | null
   status: ProjectStatus
@@ -62,6 +69,12 @@ export interface Project {
 export interface ProjectCreate {
   name: string
   description?: string
+  vision?: string
+  target_user?: string
+  stage?: ProjectStage
+  constraints?: string[]
+  what_exists?: string[]
+  problems?: string[]
   kpi_primary?: string
   kpi_secondary?: string
   color?: string
@@ -78,8 +91,32 @@ export interface PlanTask {
   priority: Priority
   status: PlanTaskStatus
   order_index: number
+  day_index: number | null
+  expected_outcome: string
+  depends_on: string[]
+  is_handoff: boolean
   created_at: string
   updated_at: string
+}
+
+export interface WeeklyMetric {
+  id: number
+  name: string
+  target: string
+  linked_task_titles: string[]
+  actual: string | null
+}
+
+export interface WeeklyRisk {
+  id: number
+  risk: string
+  mitigation: string
+}
+
+export interface KeyGap {
+  gap: string
+  impact: 'high' | 'medium' | 'low'
+  reason: string
 }
 
 export interface WeeklyPlan {
@@ -89,14 +126,52 @@ export interface WeeklyPlan {
   goal: string
   context: string
   prompt: string
+  time_available_hours: number
+  blockers: string[]
+  focus_areas: string[]
+  analysis_summary: string
+  key_gaps: KeyGap[]
   status: PlanStatus
   created_at: string
   updated_at: string
   plan_tasks: PlanTask[]
+  metrics: WeeklyMetric[]
+  risks: WeeklyRisk[]
 }
 
 export interface WeeklyPlanGenerate {
-  prompt: string
+  prompt?: string
   goal?: string
   context?: string
+  time_available_hours?: number
+  blockers?: string[]
+  focus_areas?: string[]
+}
+
+// --- clarifier ---
+export type ClarifyKind = 'project_intake' | 'weekly_intake'
+
+export interface ClarifyOption {
+  label: string
+  value: string
+}
+
+export interface ClarifyQuestion {
+  field: string
+  question: string
+  multi_select: boolean
+  options: ClarifyOption[]
+  allow_custom: boolean
+}
+
+export interface ClarifyResponse {
+  summary: string
+  questions: ClarifyQuestion[]
+}
+
+export interface ClarifyRequest {
+  kind: ClarifyKind
+  user_text: string
+  known_fields?: Record<string, unknown>
+  project_id?: number
 }

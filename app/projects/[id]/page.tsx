@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { ChevronLeft, Calendar } from 'lucide-react'
 import { api } from '@/lib/api'
 import { PlanInputPanel } from '@/components/planner/PlanInputPanel'
-import { TaskTable } from '@/components/planner/TaskTable'
-import { WorkloadPanel } from '@/components/planner/WorkloadPanel'
+import { DailyTaskBoard } from '@/components/planner/DailyTaskBoard'
+import { InsightsPanel } from '@/components/planner/InsightsPanel'
 import type { Project, WeeklyPlan, Developer } from '@/types'
 
 function mondayOf(d: Date): string {
-  const day = d.getDay() // 0 Sun … 6 Sat
+  const day = d.getDay()
   const diff = day === 0 ? -6 : 1 - day
   const m = new Date(d)
   m.setDate(d.getDate() + diff)
@@ -30,9 +30,6 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
   const [project, setProject] = useState<Project | null>(null)
   const [plan, setPlan] = useState<WeeklyPlan | null>(null)
   const [developers, setDevelopers] = useState<Developer[]>([])
-  const [goal, setGoal] = useState('')
-  const [context, setContext] = useState('')
-  const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -53,11 +50,9 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
           api.projects.get(projectId),
           api.developers.list(),
         ])
-        setProject(proj)
-        setDevelopers(devs)
+        setProject(proj); setDevelopers(devs)
         const wk = await loadOrCreatePlan(proj)
         setPlan(wk)
-        setGoal(wk.goal); setContext(wk.context); setPrompt(wk.prompt)
       } catch (e: unknown) {
         setErr(e instanceof Error ? e.message : 'Failed to load')
       } finally {
@@ -71,11 +66,14 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
     setPlan(await api.plans.get(plan.id))
   }
 
-  async function handleGenerate() {
+  async function handleGenerate(payload: {
+    goal: string; context: string; prompt: string;
+    time_available_hours: number; blockers: string[]; focus_areas: string[]
+  }) {
     if (!plan) return
-    setGenerating(true)
+    setGenerating(true); setErr(null)
     try {
-      const updated = await api.plans.generate(plan.id, { prompt, goal, context })
+      const updated = await api.plans.generate(plan.id, payload)
       setPlan(updated)
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Generate failed')
@@ -121,8 +119,8 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-neutral-900">{project.name}</h1>
-            {project.description && (
-              <p className="text-sm text-neutral-500 mt-0.5">{project.description}</p>
+            {project.vision && (
+              <p className="text-sm text-neutral-500 mt-0.5 max-w-2xl">{project.vision}</p>
             )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-neutral-500 bg-white border border-neutral-200/70 rounded-full px-3 py-1.5">
@@ -133,29 +131,25 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
       </header>
 
       <div className="grid grid-cols-12 gap-5 flex-1 min-h-0">
-        <div className="col-span-12 md:col-span-3 min-h-0">
+        <div className="col-span-12 lg:col-span-3 min-h-0">
           <PlanInputPanel
             project={project}
-            goal={goal}
-            context={context}
-            prompt={prompt}
+            plan={plan}
             generating={generating}
-            onGoalChange={setGoal}
-            onContextChange={setContext}
-            onPromptChange={setPrompt}
             onGenerate={handleGenerate}
           />
         </div>
-        <div className="col-span-12 md:col-span-6 min-h-0 overflow-y-auto scrollbar-subtle">
-          <TaskTable
+        <div className="col-span-12 lg:col-span-6 min-h-0">
+          <DailyTaskBoard
             tasks={plan.plan_tasks}
             developers={developers}
             generating={generating}
             onChange={refreshPlan}
+            totalAvailableHours={plan.time_available_hours}
           />
         </div>
-        <div className="col-span-12 md:col-span-3 min-h-0">
-          <WorkloadPanel tasks={plan.plan_tasks} developers={developers} />
+        <div className="col-span-12 lg:col-span-3 min-h-0">
+          <InsightsPanel plan={plan} />
         </div>
       </div>
     </div>
