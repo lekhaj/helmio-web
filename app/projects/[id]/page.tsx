@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { PlanInputPanel } from '@/components/planner/PlanInputPanel'
 import { DailyTaskBoard } from '@/components/planner/DailyTaskBoard'
 import { InsightsPanel } from '@/components/planner/InsightsPanel'
+import { TeamPopover } from '@/components/planner/TeamPopover'
 import type { Project, WeeklyPlan, Developer } from '@/types'
 
 function mondayOf(d: Date): string {
@@ -123,9 +124,15 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
               <p className="text-sm text-neutral-500 mt-0.5 max-w-2xl">{project.vision}</p>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-neutral-500 bg-white border border-neutral-200/70 rounded-full px-3 py-1.5">
-            <Calendar className="size-3.5 text-neutral-400" />
-            <span className="font-medium text-neutral-700">Week of {formatWeek(plan.week_start_date)}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-neutral-500 bg-white border border-neutral-200/70 rounded-full px-3 py-1.5">
+              <Calendar className="size-3.5 text-neutral-400" />
+              <span className="font-medium text-neutral-700">Week of {formatWeek(plan.week_start_date)}</span>
+            </div>
+            <TeamPopover
+              developers={developers}
+              onChange={setDevelopers}
+            />
           </div>
         </div>
       </header>
@@ -141,6 +148,7 @@ export default function ProjectPlannerPage({ params }: { params: Promise<{ id: s
         </div>
         <div className="col-span-12 lg:col-span-6 min-h-0">
           <DailyTaskBoard
+            planId={plan.id}
             tasks={plan.plan_tasks}
             developers={developers}
             generating={generating}

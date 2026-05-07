@@ -51,6 +51,7 @@ export const api = {
     list: () => req<Developer[]>('/developers'),
     create: (body: { name: string; email?: string; role?: string }) =>
       req<Developer>('/developers', { method: 'POST', body: JSON.stringify(body) }),
+    delete: (id: number) => req<void>(`/developers/${id}`, { method: 'DELETE' }),
   },
   plans: {
     get: (id: number) => req<WeeklyPlan>(`/weekly-plans/${id}`),
@@ -60,6 +61,8 @@ export const api = {
       req<WeeklyPlan>(`/weekly-plans/${id}/generate`, { method: 'POST', body: JSON.stringify(body) }),
   },
   planTasks: {
+    create: (planId: number, body: { title: string; effort_hours?: number; day_index?: number | null; priority?: string; is_handoff?: boolean }) =>
+      req<PlanTask>(`/weekly-plans/${planId}/tasks`, { method: 'POST', body: JSON.stringify(body) }),
     update: (id: number, body: Partial<PlanTask>) =>
       req<PlanTask>(`/plan-tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     delete: (id: number) => req<void>(`/plan-tasks/${id}`, { method: 'DELETE' }),

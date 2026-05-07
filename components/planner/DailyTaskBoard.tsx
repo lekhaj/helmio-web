@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, AlertCircle, Sparkles, ArrowRight, Users } from 'lucide-react'
+import { Trash2, AlertCircle, ArrowRight, Users, Plus, Check, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import type { PlanTask, Developer, Priority, PlanTaskStatus } from '@/types'
@@ -21,6 +21,7 @@ const STATUS_BADGE: Record<PlanTaskStatus, string> = {
 }
 
 interface Props {
+  planId: number
   tasks: PlanTask[]
   developers: Developer[]
   generating: boolean
@@ -28,7 +29,7 @@ interface Props {
   totalAvailableHours: number
 }
 
-export function DailyTaskBoard({ tasks, developers, generating, onChange, totalAvailableHours }: Props) {
+export function DailyTaskBoard({ planId, tasks, developers, generating, onChange, totalAvailableHours }: Props) {
   const devTasks = tasks.filter(t => !t.is_handoff)
   const handoffs = tasks.filter(t => t.is_handoff)
   const totalHours = devTasks.reduce((s, t) => s + t.effort_hours, 0)
@@ -60,8 +61,6 @@ export function DailyTaskBoard({ tasks, developers, generating, onChange, totalA
 
       {generating ? (
         <Skeleton />
-      ) : tasks.length === 0 ? (
-        <Empty />
       ) : (
         <div className="flex-1 overflow-x-auto overflow-y-auto scrollbar-subtle">
           <div className="grid grid-cols-5 gap-3 p-4 min-w-[860px]">
@@ -70,6 +69,7 @@ export function DailyTaskBoard({ tasks, developers, generating, onChange, totalA
                 key={d}
                 day={d}
                 idx={idx}
+                planId={planId}
                 tasks={byDay[idx]}
                 developers={developers}
                 onChange={onChange}
@@ -107,25 +107,105 @@ export function DailyTaskBoard({ tasks, developers, generating, onChange, totalA
 }
 
 function DayColumn({
-  day, idx, tasks, developers, onChange,
-}: { day: string; idx: number; tasks: PlanTask[]; developers: Developer[]; onChange: () => void }) {
+  day, idx, planId, tasks, developers, onChange,
+}: { day: string; idx: number; planId: number; tasks: PlanTask[]; developers: Developer[]; onChange: () => void }) {
   const dayHours = tasks.reduce((s, t) => s + t.effort_hours, 0)
+  const [adding, setAdding] = useState(false)
+  const [title, setTitle] = useState('')
+  const [hours, setHours] = useState(2)
+  const [saving, setSaving] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (adding) inputRef.current?.focus()
+  }, [adding])
+
+  async function addTask() {
+    if (!title.trim()) return
+    setSaving(true)
+    try {
+      await api.planTasks.create(planId, { title: title.trim(), effort_hours: hours, day_index: idx, priority: 'medium' })
+      setTitle(''); setHours(2); setAdding(false)
+      onChange()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function cancel() { setTitle(''); setHours(2); setAdding(false) }
+
   return (
     <div className="flex flex-col">
       <div className="flex items-baseline justify-between mb-2 px-1">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-700">{day}</p>
-        <span className="text-[10px] font-mono text-neutral-400">{dayHours}h</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-mono text-neutral-400">{dayHours}h</span>
+          <button
+            onClick={() => setAdding(true)}
+            className="text-neutral-400 hover:text-brand-600 transition-colors"
+            title="Add task"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        </div>
       </div>
       <div className="bg-neutral-50/60 rounded-lg p-2 flex flex-col gap-2 min-h-[180px]">
         <AnimatePresence initial={false}>
-          {tasks.length === 0 ? (
-            <p className="text-[11px] text-neutral-300 italic text-center py-6">No tasks</p>
+          {tasks.length === 0 && !adding ? (
+            <button
+              onClick={() => setAdding(true)}
+              className="flex-1 flex flex-col items-center justify-center py-6 text-neutral-300 hover:text-neutral-400 transition-colors group"
+            >
+              <Plus className="size-4 mb-1 group-hover:text-brand-400" />
+              <p className="text-[11px] italic">Add task</p>
+            </button>
           ) : (
             tasks.map((t, i) => (
               <TaskCard key={t.id} task={t} developers={developers} onChange={onChange} idx={i} />
             ))
           )}
         </AnimatePresence>
+
+        {adding && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white border border-brand-200 rounded-md p-2 shadow-sm"
+          >
+            <input
+              ref={inputRef}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addTask(); if (e.key === 'Escape') cancel() }}
+              placeholder="Task title…"
+              className="w-full text-[12px] bg-transparent focus:outline-none text-neutral-900 placeholder-neutral-400 mb-1.5"
+            />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={1} max={16}
+                  value={hours}
+                  onChange={e => setHours(parseInt(e.target.value) || 2)}
+                  className="w-9 text-[11px] font-mono border border-neutral-200 rounded px-1 py-0.5 focus:outline-none focus:border-brand-400"
+                />
+                <span className="text-[10px] text-neutral-400">h</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={cancel} className="text-neutral-400 hover:text-neutral-600">
+                  <X className="size-3.5" />
+                </button>
+                <button
+                  onClick={addTask}
+                  disabled={!title.trim() || saving}
+                  className="text-brand-600 hover:text-brand-700 disabled:opacity-40"
+                >
+                  <Check className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   )
@@ -262,22 +342,6 @@ function HandoffCard({
   )
 }
 
-function Empty() {
-  return (
-    <div className="flex-1 flex items-center justify-center px-5 py-16 text-center">
-      <div>
-        <div className="inline-flex items-center justify-center size-10 rounded-full bg-brand-50 mb-3">
-          <Sparkles className="size-4 text-brand-600" />
-        </div>
-        <p className="text-sm font-medium text-neutral-900 mb-1">Ready to draft this week</p>
-        <p className="text-[12px] text-neutral-500 max-w-xs mx-auto leading-relaxed">
-          Describe this week on the left, answer the chips, then hit{' '}
-          <span className="font-mono text-neutral-700">Generate weekly plan</span>.
-        </p>
-      </div>
-    </div>
-  )
-}
 
 function Skeleton() {
   return (
